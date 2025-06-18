@@ -1,0 +1,23 @@
+GNU GENERAL PUBLIC LICENSE
+Version 3, 29 June 2007
+
+Copyright (C) 2007 Free Software Foundation, Inc.
+<https://fsf.org/>
+
+Everyone is permitted to copy and distribute verbatim copies
+of this license document, but changing it is not allowed.
+
+---
+
+## NodeSniff License Modification Notice
+
+This software is licensed under the GNU General Public License v3 with the following **additional restriction**:
+
+> This software is provided **for non-commercial use only**.  
+> Any use of this software, or its derivatives, in commercial environments or for-profit services requires a separate **commercial license**.  
+> Please contact [info@nodesniff.com](mailto:info@nodesniff.com) for inquiries about commercial licensing.
+
+---
+
+You should have received a copy of the GNU General Public License
+along with this program. If not, see <https://www.gnu.org/licenses/>.
