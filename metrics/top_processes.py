@@ -1,51 +1,70 @@
 # ------------------------------------------------------------------------------
-# NodeSniff Agent - Lightweight Linux metrics collector
+# NodeSniff Agent - top 10 CPU-consuming processes (non-blocking, cached)
 #
 # Author: Sebastian Zieba <sebastian@zieba.art>
 # License: GNU GPL v3 (non-commercial use only)
-#
-# This software is licensed under the terms of the GNU General Public License
-# version 3 (GPLv3) as published by the Free Software Foundation, **for
-# non-commercial use only**.
-#
-# For commercial licensing, please contact the author directly.
+# Version: 1.1.1
+# Date: 2025-06-27
 # ------------------------------------------------------------------------------
 
 import psutil
+import threading
 import time
 
-def get():
+_cached_processes = []
+_last_update = 0
+_update_interval = 30  # seconds
+_first_run = True  # one-time blocking priming
+
+def _update_cache():
+    global _cached_processes, _last_update
+
+    processes = []
     try:
-        # Priming: For accurate CPU usage, call cpu_percent(interval=None) on all processes first.
-        for proc in psutil.process_iter():
+        primed = []
+        for proc in psutil.process_iter(['pid', 'name']):
             try:
                 proc.cpu_percent(interval=None)
-            except Exception:
-                continue  # Ignore processes that no longer exist
+                primed.append(proc)
+            except (psutil.NoSuchProcess, psutil.AccessDenied):
+                continue
 
-        # Short delay to allow psutil to calculate CPU percent over an interval
-        time.sleep(0.1)
+        time.sleep(1.0)  # wait to measure actual CPU usage
 
-        processes = []
-        # Gather process info including CPU percent and memory usage
-        for proc in psutil.process_iter(['pid', 'name', 'cpu_percent', 'memory_info']):
+        for proc in primed:
             try:
-                info = proc.info
-                memory_rss = info.get('memory_info').rss if info.get('memory_info') else 0
+                info = proc.as_dict(attrs=['pid', 'name', 'cpu_percent', 'memory_info'])
+                memory_rss = info['memory_info'].rss if info['memory_info'] else 0
                 processes.append({
-                    "pid": info['pid'],                             # Process ID
-                    "name": info['name'] or "unknown",              # Process name (fallback if None)
-                    "cpu": round(info['cpu_percent'], 1),           # CPU usage in percent
-                    "ram": round(memory_rss / 1024 / 1024, 1)       # RAM usage in MB (RSS)
+                    "pid": info['pid'],
+                    "name": info['name'] or "unknown",
+                    "cpu": round(info['cpu_percent'], 1),
+                    "ram": round(memory_rss / 1024 / 1024, 1)  # MB
                 })
             except (psutil.NoSuchProcess, psutil.AccessDenied):
-                continue  # Skip processes that are gone or inaccessible
+                continue
 
-        # Sort processes by CPU usage descending and return top 10
-        top = sorted(processes, key=lambda p: p['cpu'], reverse=True)[:10]
-        return {"top_cpu_processes": top}
+        _cached_processes = sorted(processes, key=lambda p: (p['cpu'], p['ram']), reverse=True)[:10]
+        _last_update = time.time()
 
-    except Exception as e:
-        # If anything goes wrong, return error string in result
-        return {"top_cpu_processes": f"Error: {str(e)}"}
+    except Exception:
+        _cached_processes = []
+        _last_update = time.time()
 
+def get():
+    global _last_update, _first_run
+
+    now = time.time()
+
+    if _first_run:
+        _update_cache()  # blocking on first call to fill cache
+        _first_run = False
+    elif now - _last_update > _update_interval:
+        threading.Thread(target=_update_cache, daemon=True).start()
+
+    return {"top_cpu_processes": _cached_processes}
+
+# Optional debug entry point
+if __name__ == "__main__":
+    import json
+    print(json.dumps(get(), indent=2))

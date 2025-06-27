@@ -2,7 +2,7 @@
 # ------------------------------------------------------------------------------
 # NodeSniff Agent - Lightweight Linux metrics collector
 #
-# Author: Sebastian Zieba <www.zieba.art>
+# Author: www.nodesniff.com
 # License: GNU GPL v3 (non-commercial use only)
 #
 # This software is licensed under the terms of the GNU General Public License
