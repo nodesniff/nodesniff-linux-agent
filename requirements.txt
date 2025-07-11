@@ -1,3 +1,4 @@
-psutil>=5.9.0
-PyYAML>=6.0
-requests>=2.25.0
+psutil
+PyYAML
+requests
+setuptools
